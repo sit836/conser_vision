@@ -6,13 +6,14 @@ from torch.utils.data import DataLoader
 
 import os
 from image_dataset import ImagesDataset
-from constants import IN_PATH, SPECIES_LABELS
+from constants import IN_PATH, OUT_PATH, SPECIES_LABELS
 
 
 def make_submission(model):
+    print("Make a submission...")
     test_features = pd.read_csv(os.path.join(IN_PATH, "test_features.csv"), index_col="id")
     test_dataset = ImagesDataset(test_features.filepath.to_frame())
-    test_dataloader = DataLoader(test_dataset, batch_size=32)
+    test_dataloader = DataLoader(test_dataset, batch_size=64)
 
     preds_collector = []
 
@@ -36,4 +37,4 @@ def make_submission(model):
             preds_collector.append(preds_df)
 
     submission_df = pd.concat(preds_collector)
-    submission_df.to_csv("submission_df.csv")
+    submission_df.to_csv(os.path.join(OUT_PATH, "submission_df.csv"))

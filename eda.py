@@ -1,11 +1,14 @@
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from constants import IN_PATH
 
 train_labels = pd.read_csv(os.path.join(IN_PATH, 'train_labels.csv'))
-print(train_labels)
+train_features = pd.read_csv(os.path.join(IN_PATH, 'train_features.csv'))
+test_features = pd.read_csv(os.path.join(IN_PATH, 'test_features.csv'))
 
+print(train_labels.isnull().sum())
 # print(train_labels.iloc[:, 1:].sum(axis=1).max())
 
 # balance
