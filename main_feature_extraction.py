@@ -14,7 +14,27 @@ from tqdm import tqdm
 from constants import IN_PATH, SPECIES_LABELS
 from image_dataset import ImagesDataset
 from submit import make_submission
-from utils import try_gpu
+from utils import try_gpu, transform_train, transform_test
+
+
+def get_net():
+    net = models.resnet50(pretrained=True)
+    # net = models.resnet152(pretrained=True)
+    # net = models.efficientnet_b7(pretrained=True)
+
+    for param in net.parameters():
+        param.requires_grad = False
+
+    # Overwrite the last fully connected layer.
+    # By default, tensor has requires_grad=True, so we do not need to unfreeze fc layer again.
+    net.fc = nn.Linear(2048, len(SPECIES_LABELS))
+
+    for param in net.layer4.parameters():
+        param.requires_grad = True
+
+    net = net.to(device=try_gpu())
+
+    return net
 
 
 def get_accuracy(pred_list, y):
@@ -66,21 +86,27 @@ def make_plot(train_loss_epoch_arr, val_loss_epoch_arr, train_acc_epoch_arr, val
     ax2.set_ylabel("Acc", fontsize=fontsize)
     ax2.legend(loc=0, fontsize=fontsize)
     plt.show()
+    # plt.savefig(f'plot/num_node_{num_node}.png')
+    # plt.close()
 
 
-batch_size = 32
+batch_size = 64
 num_epochs = 10
+
+lr = 1e-3
+lr_period, lr_decay = 2, 0.9
+wd = 0.01
 
 train_features = pd.read_csv(os.path.join(IN_PATH, "train_features.csv"), index_col="id")
 train_labels = pd.read_csv(os.path.join(IN_PATH, "train_labels.csv"), index_col="id")
 
 # TODO: for test purpose
-frac = 0.01
-y = train_labels.sample(frac=frac, random_state=1)
-x = train_features.loc[y.index].filepath.to_frame()
+# frac = 0.5
+# y = train_labels.sample(frac=frac, random_state=1)
+# x = train_features.loc[y.index].filepath.to_frame()
 
-# y = train_labels
-# x = train_features.filepath.to_frame()
+y = train_labels
+x = train_features.filepath.to_frame()
 
 # note that we are casting the species labels to an indicator/dummy matrix
 x_train, x_eval, y_train, y_eval = train_test_split(
@@ -88,30 +114,17 @@ x_train, x_eval, y_train, y_eval = train_test_split(
 )
 print(f'x_train.shape, x_eval.shape: {x_train.shape, x_eval.shape}')
 
-train_dataset = ImagesDataset(x_train, y_train)
+train_dataset = ImagesDataset(transform_train, x_train, y_train)
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
-val_dataset = ImagesDataset(x_eval, y_eval)
+val_dataset = ImagesDataset(transform_test, x_eval, y_eval)
 val_dataloader = DataLoader(val_dataset, batch_size=64)
 
-# net = models.resnet50(pretrained=True)
-net = models.resnet152(pretrained=True)
-# net = models.efficientnet_b7(pretrained=True)
-
-net.fc = nn.Sequential(
-    nn.Linear(2048, 16),
-    nn.ReLU(),
-    nn.Dropout(0.1),
-    nn.Linear(
-        16, 8
-    ),
-)
-net = net.to(device=try_gpu())
-
+net = get_net()
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=1e-3, momentum=0.9)
+optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=wd)
+# optimizer = optim.SGD((param for param in net.parameters() if param.requires_grad), lr=lr, momentum=0.9)
 # optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-lr_period, lr_decay = 2, 0.5
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, lr_period, lr_decay)
 
 train_loss_epoch_arr = np.zeros(num_epochs)
@@ -170,5 +183,7 @@ for epoch in range(1, num_epochs + 1):
     # plt.show()
 
 make_plot(train_loss_epoch_arr, val_loss_epoch_arr, train_acc_epoch_arr, val_acc_epoch_arr)
+
+# TODO: train model on the full dataset
 
 # make_submission(net)

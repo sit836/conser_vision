@@ -1,18 +1,20 @@
-from tqdm import tqdm
+import os
+
+import pandas as pd
 import torch
 from torch import nn
-import pandas as pd
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-import os
-from image_dataset import ImagesDataset
 from constants import IN_PATH, OUT_PATH, SPECIES_LABELS
+from image_dataset import ImagesDataset
+from utils import transform_test
 
 
 def make_submission(model):
     print("Make a submission...")
     test_features = pd.read_csv(os.path.join(IN_PATH, "test_features.csv"), index_col="id")
-    test_dataset = ImagesDataset(test_features.filepath.to_frame())
+    test_dataset = ImagesDataset(transform_test, test_features.filepath.to_frame())
     test_dataloader = DataLoader(test_dataset, batch_size=64)
 
     preds_collector = []
