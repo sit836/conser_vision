@@ -1,7 +1,6 @@
+import matplotlib.pyplot as plt
+import pandas as pd
 import torch
-from torchvision import transforms
-
-from constants import RGB_MEAN, RGB_STD, IMAGE_SIZE
 
 
 def cpu():
@@ -22,22 +21,29 @@ def try_gpu(i=0):
     return cpu()
 
 
-transform_train = transforms.Compose([
-    # Randomly crop the image to obtain an image with an area of 0.08 to 1 of
-    # the original area and height-to-width ratio between 3/4 and 4/3. Then,
-    # scale the image to create a new 224 x 224 image
-    transforms.RandomResizedCrop(IMAGE_SIZE, scale=(0.08, 1.0),
-                                 ratio=(3.0 / 4.0, 4.0 / 3.0)),
-    transforms.RandomHorizontalFlip(),
-    # Randomly change the brightness, contrast, and saturation
-    transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
-    # Add random noise
-    transforms.ToTensor(),
-    # Standardize each channel of the image
-    transforms.Normalize(RGB_MEAN, RGB_STD)])
+def get_accuracy(pred_list, y):
+    pred_df = pd.concat(pred_list)
+    predictions = pred_df.idxmax(axis=1)
+    eval_true = y.idxmax(axis=1)
+    correct = (predictions == eval_true).sum()
+    accuracy = correct / len(predictions)
+    return accuracy
 
-transform_test = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(IMAGE_SIZE),
-    transforms.ToTensor(),
-    transforms.Normalize(RGB_MEAN, RGB_STD)])
+
+def make_plot(train_loss_epoch_arr, val_loss_epoch_arr, train_acc_epoch_arr, val_acc_epoch_arr):
+    fontsize = 15
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.plot(train_loss_epoch_arr, label="train")
+    ax1.plot(val_loss_epoch_arr, label="val")
+    ax1.set_xlabel("Epoch", fontsize=fontsize)
+    ax1.set_ylabel("Loss", fontsize=fontsize)
+    ax1.legend(loc=0, fontsize=fontsize)
+
+    ax2.plot(train_acc_epoch_arr, label="train")
+    ax2.plot(val_acc_epoch_arr, label="val")
+    ax2.set_xlabel("Epoch", fontsize=fontsize)
+    ax2.set_ylabel("Acc", fontsize=fontsize)
+    ax2.legend(loc=0, fontsize=fontsize)
+    plt.show()
+    # plt.savefig(f'plot/num_node_{num_node}.png')
+    # plt.close()
