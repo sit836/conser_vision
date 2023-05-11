@@ -30,7 +30,8 @@ def get_accuracy(pred_list, y):
     return accuracy
 
 
-def make_plot(train_loss_epoch_arr, val_loss_epoch_arr, train_acc_epoch_arr, val_acc_epoch_arr):
+def make_plot(train_loss_epoch_arr, val_loss_epoch_arr, train_acc_epoch_arr, val_acc_epoch_arr, lr, num_epochs,
+              lr_period, lr_decay, wd, net_name, feature_extraction):
     fontsize = 15
     fig, (ax1, ax2) = plt.subplots(1, 2)
     ax1.plot(train_loss_epoch_arr, label="train")
@@ -44,6 +45,7 @@ def make_plot(train_loss_epoch_arr, val_loss_epoch_arr, train_acc_epoch_arr, val
     ax2.set_xlabel("Epoch", fontsize=fontsize)
     ax2.set_ylabel("Acc", fontsize=fontsize)
     ax2.legend(loc=0, fontsize=fontsize)
-    plt.show()
-    # plt.savefig(f'plot/num_node_{num_node}.png')
-    # plt.close()
+    # plt.show()
+    plt.savefig(
+        f'plot/net_name{net_name}_lr{lr}_num_epochs{num_epochs}_lr_period{lr_period}_lr_decay{lr_decay}_wd{wd}_fe{feature_extraction}.png')
+    plt.close()

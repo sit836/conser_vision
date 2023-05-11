@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from constants import IN_PATH, OUT_PATH, SPECIES_LABELS
 from image_dataset import ImagesDataset
-from utils import transform_test
+from model import transform_test
 
 
 def make_submission(model):
@@ -26,7 +26,7 @@ def make_submission(model):
     with torch.no_grad():
         for batch in tqdm(test_dataloader, total=len(test_dataloader)):
             # run the forward step
-            logits = model.forward(batch["image"])
+            logits = model.forward(batch["image"].half())
             # apply softmax so that model outputs are in range [0,1]
             preds = nn.functional.softmax(logits, dim=1)
             # store this batch's predictions in df

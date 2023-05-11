@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -13,26 +14,38 @@ from utils import get_accuracy, try_gpu
 criterion = nn.CrossEntropyLoss()
 
 
-def get_net():
-    # net = models.resnet50(pretrained=True)
-    net = models.resnet152(pretrained=True)
-    # net = models.efficientnet_b3(pretrained=True)
+def get_net(net_name, feature_extraction=False):
+    if net_name == 'resnet18':
+        net = models.resnet18(pretrained=True)
+    elif net_name == 'resnet34':
+        net = models.resnet34(pretrained=True)
+    elif net_name == 'resnet50':
+        net = models.resnet50(pretrained=True)
+    elif net_name == 'resnet152':
+        net = models.resnet152(pretrained=True)
+    elif net_name == 'efficientnet_b3':
+        net = models.efficientnet_b3(pretrained=True)
+    else:
+        raise Exception(f'net_name is not a valid {net_name}.')
 
-    for param in net.parameters():
-        param.requires_grad = False
+    if feature_extraction:
+        for param in net.parameters():
+            param.requires_grad = False
 
     # Overwrite the last fully connected layer.
     # By default, tensor has requires_grad=True, so we do not need to unfreeze fc layer again.
     net.fc = nn.Linear(2048, len(SPECIES_LABELS))
+    # net.classifier[1] = nn.Linear(1536, len(SPECIES_LABELS))
 
-    for param in net.layer4.parameters():
-        param.requires_grad = True
+    if feature_extraction:
+        for param in net.layer4.parameters():
+            param.requires_grad = True
 
     # net.classifier[1] = nn.Linear(1536, len(SPECIES_LABELS))
     # for param in net.features.parameters():
     #     param.requires_grad = True
 
-    net = net.to(device=try_gpu())
+    net = net.to(device=try_gpu()).half()
 
     return net
 
@@ -47,7 +60,7 @@ def train_batch_loop(net, train_dataloader, optimizer):
         optimizer.zero_grad()
 
         # 2) run the foward step on this batch of images
-        outputs = net(batch["image"])
+        outputs = net(batch["image"].half())
 
         # 3) compute the loss
         loss = criterion(outputs, batch["label"])
@@ -78,7 +91,7 @@ def valid_batch_loop(net, val_dataloader):
     with torch.no_grad():
         for batch in tqdm(val_dataloader, total=len(val_dataloader)):
             # 1) run the forward step
-            logits = net.forward(batch["image"])
+            logits = net.forward(batch["image"].half())
             # 2) apply softmax so that model outputs are in range [0,1]
             preds = nn.functional.softmax(logits, dim=1)
 
