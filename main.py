@@ -17,7 +17,7 @@ num_epochs = 10
 lr = 5e-4
 lr_period, lr_decay = 100, 0.9
 wd = 0.0
-net_name = "resnet152"
+net_name = "resnet50"
 feature_extraction = False
 
 train_features = pd.read_csv(os.path.join(IN_PATH, "train_features.csv"), index_col="id")
